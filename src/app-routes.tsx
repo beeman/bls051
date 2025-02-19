@@ -1,9 +1,8 @@
 import { Navigate, RouteObject, useRoutes } from 'react-router'
 import { UiLayout } from './ui/'
-import { LazyFeatureAbout, LazyFeatureCluster, LazyFeatureContact, LazyFeatureDev, LazyFeatureHome } from './features'
+import { LazyFeatureAbout, LazyFeatureContact, LazyFeatureDev, LazyFeatureHome } from './features'
 import { LucideBug, LucideFile, LucideHome } from 'lucide-react'
 import { UiNotFound } from './ui'
-import { ClusterUiSelect } from './features/cluster/ui'
 import { WalletButton, WalletIcon } from './features/solana'
 import { Box } from '@mantine/core'
 
@@ -49,7 +48,6 @@ export function AppRoutes() {
               <Box display="flex" visibleFrom="sm">
                 <WalletButton size="xs" variant="light" />
               </Box>
-              <ClusterUiSelect />
             </>
           }
         />
@@ -57,7 +55,6 @@ export function AppRoutes() {
       children: [
         { index: true, element: <Navigate to="/home" replace /> },
         { path: '/about', element: <LazyFeatureAbout /> },
-        { path: '/clusters/*', element: <LazyFeatureCluster /> },
         { path: '/contact', element: <LazyFeatureContact /> },
         { path: '/dev/*', element: <LazyFeatureDev /> },
         { path: '/home', element: <LazyFeatureHome /> },
