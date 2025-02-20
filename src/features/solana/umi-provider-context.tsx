@@ -1,12 +1,12 @@
 import { createContext, useContext } from 'react'
+import { Umi } from '@metaplex-foundation/umi'
 
 export interface GillProviderContext {
-  // TODO: Replace with UMI
-  umi: string
+  umi: Umi
 }
 
 export const UmiContext = createContext<GillProviderContext>({} as GillProviderContext)
 
-export function useGill() {
+export function useUmi() {
   return useContext(UmiContext)
 }

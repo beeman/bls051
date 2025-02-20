@@ -12,6 +12,7 @@
     "fmt:check": "prettier --check .",
     "lint": "eslint .",
     "preview": "vite preview",
+    "scripts:create-collection": "esrun --node-no-warnings scripts/create-collection.ts",
     "scripts:fee-payer": "esrun --node-no-warnings scripts/fee-payer.ts"
   },
   "dependencies": {
@@ -21,6 +22,12 @@
     "@mantine/hooks": "^7.16.3",
     "@mantine/modals": "^7.16.3",
     "@mantine/notifications": "^7.16.3",
+    "@metaplex-foundation/mpl-core": "^1.2.0",
+    "@metaplex-foundation/mpl-core-candy-machine": "^0.3.0",
+    "@metaplex-foundation/umi": "^1.0.0",
+    "@metaplex-foundation/umi-bundle-defaults": "^1.0.0",
+    "@metaplex-foundation/umi-signer-wallet-adapters": "^1.0.0",
+    "@metaplex-foundation/umi-uploader-irys": "^1.0.1",
     "@pubkeyapp/wallet-adapter-mantine-ui": "^2.3.0",
     "@solana/wallet-adapter-base": "^0.9.23",
     "@solana/wallet-adapter-react": "^0.15.35",
