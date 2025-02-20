@@ -11,7 +11,8 @@
     "fmt": "prettier --write .",
     "fmt:check": "prettier --check .",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "scripts:fee-payer": "esrun --node-no-warnings scripts/fee-payer.ts"
   },
   "dependencies": {
     "@mantine/code-highlight": "^7.16.3",
@@ -25,6 +26,7 @@
     "@solana/wallet-adapter-react": "^0.15.35",
     "@solana/web3.js": "1.98.0",
     "@tanstack/react-query": "^5.66.0",
+    "bs58": "^6.0.0",
     "jotai": "^2.12.1",
     "lucide-react": "^0.475.0",
     "memfs": "^4.17.0",
@@ -36,12 +38,15 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.19.0",
+    "@types/node": "^22.13.4",
     "@types/react": "^19.0.8",
     "@types/react-dom": "^19.0.3",
     "@vitejs/plugin-react": "^4.3.4",
+    "dotenv": "^16.4.7",
     "eslint": "^9.19.0",
     "eslint-plugin-react-hooks": "^5.0.0",
     "eslint-plugin-react-refresh": "^0.4.18",
+    "esrun": "^3.2.26",
     "globals": "^15.14.0",
     "postcss": "^8.5.2",
     "postcss-preset-mantine": "^1.17.0",
