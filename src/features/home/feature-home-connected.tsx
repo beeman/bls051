@@ -1,10 +1,11 @@
 import { WalletButton, WalletConnectionLoaderRenderer } from '../solana'
-import { useBalance, useRequestAirdrop } from '../solana/use-balance.tsx'
-import { Button, Group, Stack } from '@mantine/core'
+import { useBalance } from '../solana/use-balance.tsx'
+import { Box, Button, Group, Stack } from '@mantine/core'
+import { useRequestAirdrop } from '../solana/use-request-airdrop.tsx'
 
-export function FeatureHomeConnected({ connection, wallet }: WalletConnectionLoaderRenderer) {
-  const mutationRequestAirdrop = useRequestAirdrop({ connection, wallet })
-  const queryBalance = useBalance({ connection, wallet })
+export function FeatureHomeConnected({ connection, publicKey }: WalletConnectionLoaderRenderer) {
+  const mutationRequestAirdrop = useRequestAirdrop({ connection, publicKey })
+  const queryBalance = useBalance({ connection, publicKey })
   const balance = queryBalance.data ? (queryBalance.data / 1e9).toFixed(2) : '0'
 
   return (
@@ -19,17 +20,17 @@ export function FeatureHomeConnected({ connection, wallet }: WalletConnectionLoa
           Request airdrop
         </Button>
       </Group>
-      <pre>
+      <Box component="pre" fz="xs">
         {JSON.stringify(
           {
-            publicKey: wallet.adapter.publicKey?.toString(),
             endpoint: connection.rpcEndpoint,
             balance: balance,
+            publicKey,
           },
           null,
           2,
         )}
-      </pre>
+      </Box>
     </Stack>
   )
 }

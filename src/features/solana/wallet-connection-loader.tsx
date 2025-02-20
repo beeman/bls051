@@ -1,10 +1,11 @@
 import { WalletMultiButton } from '@pubkeyapp/wallet-adapter-mantine-ui'
 import { useConnection, useWallet, Wallet } from '@solana/wallet-adapter-react'
-import { Connection } from '@solana/web3.js'
+import { Connection, PublicKey } from '@solana/web3.js'
 import { ReactNode } from 'react'
 
 export interface WalletConnectionLoaderRenderer {
   connection: Connection
+  publicKey: PublicKey
   wallet: Wallet
 }
 
@@ -15,13 +16,15 @@ export function WalletConnectionLoader({
 }) {
   const { wallet } = useWallet()
   const { connection } = useConnection()
+  const publicKey = wallet?.adapter.publicKey
 
   if (!connection) {
     return null
   }
-  if (!wallet) {
+
+  if (!wallet || !publicKey) {
     return <WalletMultiButton />
   }
 
-  return render({ wallet, connection })
+  return render({ connection, publicKey, wallet })
 }
