@@ -3,10 +3,15 @@ import { useConnection, useWallet, Wallet } from '@solana/wallet-adapter-react'
 import { Connection } from '@solana/web3.js'
 import { ReactNode } from 'react'
 
+export interface WalletConnectionLoaderRenderer {
+  connection: Connection
+  wallet: Wallet
+}
+
 export function WalletConnectionLoader({
   render,
 }: {
-  render: ({ wallet, connection }: { wallet: Wallet; connection: Connection }) => ReactNode
+  render: ({ wallet, connection }: WalletConnectionLoaderRenderer) => ReactNode
 }) {
   const { wallet } = useWallet()
   const { connection } = useConnection()

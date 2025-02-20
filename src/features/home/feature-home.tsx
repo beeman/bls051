@@ -1,13 +1,11 @@
-import { Button } from '@mantine/core'
 import { UiPage } from '../../ui'
-import { Link } from 'react-router'
+import { WalletConnectionLoader } from '../solana'
+import { FeatureHomeConnected } from './feature-home-connected.tsx'
 
 export default function FeatureHome() {
   return (
     <UiPage title="Home">
-      <Button component={Link} to="/about">
-        About
-      </Button>
+      <WalletConnectionLoader render={FeatureHomeConnected} />
     </UiPage>
   )
 }
