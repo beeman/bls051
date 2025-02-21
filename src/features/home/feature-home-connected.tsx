@@ -1,16 +1,15 @@
 import { WalletConnectionLoaderRenderer } from '../solana'
 import { Box, Button, Stack } from '@mantine/core'
-import { base58, generateSigner, publicKey, some } from '@metaplex-foundation/umi'
+import { generateSigner, publicKey, some } from '@metaplex-foundation/umi'
 import { useUmi } from '../solana/umi-provider-context.tsx'
 import { mintV1 } from '@metaplex-foundation/mpl-core-candy-machine'
+import { base58 } from '@metaplex-foundation/umi/serializers'
 
-export function FeatureHomeConnected(props: WalletConnectionLoaderRenderer) {
-  // const mutationRequestAirdrop = useRequestAirdrop(props)
-  // const queryBalance = useBalance(props)
-  // const balance = queryBalance.data ? (queryBalance.data / 1e9).toFixed(2) : '0'
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+export function FeatureHomeConnected(_props: WalletConnectionLoaderRenderer) {
   const { umi } = useUmi()
-  const collection = publicKey('6k3ANB6jCDDnnF3ULibzBP2N34ZP3yixr8dHeza4Zi2g')
-  const candyMachine = publicKey('EuuM6yVY5ezaDAF5aCJVTMEc2mb1entcHWDux73ZfNzM')
+  const collection = publicKey('JE5u3tRt55qzV4SRuW8VNr8aW9XiVkQQXYTR72W2RMQ')
+  const candyMachine = publicKey('7mz2zEyq3mfLPcPhqN2ST7xpCRU157xYmNemVyfbV15x')
 
   async function mint() {
     const assetKeypair = generateSigner(umi)

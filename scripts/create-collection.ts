@@ -1,188 +1,203 @@
 import 'dotenv/config'
 import { getContext } from './lib/get-context.ts'
-import { createUmi } from '@metaplex-foundation/umi-bundle-defaults'
-import { mplCore } from '@metaplex-foundation/mpl-core'
-import { keypairIdentity, publicKey } from '@metaplex-foundation/umi'
-import { irysUploader } from '@metaplex-foundation/umi-uploader-irys'
-import { mplCandyMachine } from '@metaplex-foundation/mpl-core-candy-machine'
+import pico from 'picocolors'
+import {
+  amountToString,
+  createGenericFile,
+  generateSigner,
+  none,
+  sol,
+  some,
+  TransactionSignature,
+  Umi,
+} from '@metaplex-foundation/umi'
+import { readFile } from 'node:fs/promises'
+import { join } from 'node:path'
+import { createCollection } from '@metaplex-foundation/mpl-core'
+import { base58 } from '@metaplex-foundation/umi/serializers'
+import { addConfigLines, create } from '@metaplex-foundation/mpl-core-candy-machine'
 
-const { connection, feePayer } = await getContext()
+const { signerIdentity, umi } = await getContext()
 
-// const balance = await connection.getBalance(feePayer.publicKey)
-// console.log(`[Fee Payer] Balance: ${balance / 1e9} SOL`)
+const balance = await umi.rpc.getBalance(signerIdentity.publicKey)
+console.log(`[Fee Payer] Balance: ${amountToString(balance)} SOL`)
 
-const umi = createUmi('https://api.devnet.solana.com')
-const signerIdentity = umi.eddsa.createKeypairFromFile(process.env.FEE_PAYER_KEYPAIR!)
-umi.use(mplCore())
-umi.use(mplCandyMachine())
-umi.use(keypairIdentity(signerIdentity))
-umi.use(irysUploader())
+// Step 1: Update to collection image and store the URI
+console.log(pico.whiteBright(`[ STEP 1 ] Uploading the collection image`))
+const { collectionImageUri, collectionMetadataUri } = await uploadCollectionImage(umi, {
+  collectionImage: join(process.cwd(), 'collection/assets/collection.png'),
+})
 
-console.log('signerIdentity', signerIdentity.publicKey.toString())
+console.log(`[ STEP 1 ] Collection metadata URI: ${collectionMetadataUri} and image URI: ${collectionImageUri}`)
 
-// // Step 1: Create the Collection URI (Assets on Irys)
-// const collectionImage = join(process.cwd(), 'collection/assets/collection.png')
-// const collectionImageUri = await umi.uploader.upload([
-//   createGenericFile(await readFile(collectionImage), 'collection.png', {
-//     tags: [{ name: 'content-type', value: 'image/png' }],
-//     contentType: 'image/png',
-//     extension: 'png',
-//   }),
-// ])
-//
-// console.log('collectionImageUri', collectionImageUri)
+// Step 2: Upload the assets and store the URI
+console.log(pico.whiteBright(`[ STEP 2 ] Uploading the assets`))
+const assetConfigLines: { name: string; uri: string }[] = []
+const assetCount = 16 // The Numbers collection has 16 assets
+for (let i = 0; i < assetCount; i++) {
+  const { assetImageUri, assetName, assetMetadataUri } = await uploadAssetImage(umi, {
+    assetImage: join(process.cwd(), `collection/assets/${i}.png`),
+    i,
+  })
+  console.log(`[ STEP 2 ] Asset ${i} ${assetName} metadata URI: ${assetMetadataUri} and image URI: ${assetImageUri}`)
+  assetConfigLines.push({
+    name: assetName,
+    uri: assetMetadataUri,
+  })
+}
 
-// STEP 2: upload collection.json
+console.log(pico.gray(`[ STEP 2 ] Uploaded ${assetConfigLines.length} assets`))
 
-const collectionImageUploaded = 'https://devnet.irys.xyz/AkGcKrUvCtzz77VA69jxW1z35PE4wjBG5pC1rAc2EVgp'
-// const collectionMetadataData = {
-//   name: 'Numbers BLS051',
-//   description: 'Awesome numbers 0 - 10',
-//   image: collectionImageUploaded,
-//   properties: {
-//     files: [{ uri: collectionImageUploaded, type: 'image/png' }],
-//   },
-// }
-// const collectionMetadataUploaded = await umi.uploader.uploadJson(collectionMetadataData)
-// console.log(collectionMetadataUploaded)
+console.log(pico.whiteBright(`[ STEP 3 ] Creating the collection...`))
+const collectionKeypair = generateSigner(umi)
+const collection = collectionKeypair.publicKey
 
-// Step 3 - create the MPL Core collection onchain with the metadata.
-// const collectionMetadataUploadedUri = 'https://gateway.irys.xyz/8AXQFfQRx8uXhmTCuKmbvaFTrYEzjMjY5sSR1M9bxDPE'
-// const collectionKeypair = generateSigner(umi)
-// const createCollectionSignature = await createCollection(umi, {
-//   collection: collectionKeypair,
-//   name: 'Numbers BLS051',
-//   uri: collectionMetadataUploadedUri,
-// }).sendAndConfirm(umi)
-//
-// console.log('createCollectionSignature', base58.deserialize(createCollectionSignature.signature)[0])
-// // sig: ng3rgQ7vS3py1dA8r77xExsJ2VCxJvsZ1yrYv1CwQDk196J6r48DzjFnM3jLEXYFFDcU1MwcbRT2ChyY47xyJ2v
-// account https://explorer.solana.com/address/6k3ANB6jCDDnnF3ULibzBP2N34ZP3yixr8dHeza4Zi2g?cluster=devnet
+const createCollectionSignature = await createCollection(umi, {
+  collection: collectionKeypair,
+  name: 'Numbers BLS051',
+  uri: collectionMetadataUri,
+}).sendAndConfirm(umi)
 
-const collection = publicKey('6k3ANB6jCDDnnF3ULibzBP2N34ZP3yixr8dHeza4Zi2g')
+console.log(
+  `[ STEP 3 ] Collection ${collection} created, signature: ${signatureToStr(createCollectionSignature.signature)}`,
+)
 
-console.log(`Collection: ${collection}`)
+console.log(pico.whiteBright(`[ STEP 4 ] Creating the Candy Machine...`))
 
-// STEP 4: Create the Candy Machine.
-
-// const candyMachineKeypair = generateSigner(umi)
-//
-// const createCandyMachineTx = await create(umi, {
-//   candyMachine: candyMachineKeypair,
-//   // mplCoreProgram: MPL_CORE_PROGRAM_ID,
-//   collection,
-//   collectionUpdateAuthority: umi.identity,
-//   itemsAvailable: 10,
-//   configLineSettings: none(),
-//   hiddenSettings: none(),
-//   guards: {
-//     // bot tax
-//     botTax: some({
-//       lamports: sol(0.1),
-//       lastInstruction: true,
-//     }),
-//     // sol payment
-//     solPayment: some({
-//       lamports: sol(0.1),
-//       destination: umi.identity.publicKey,
-//     }),
-//   },
-// })
-//
-// const createCandyMachineSig = await createCandyMachineTx.sendAndConfirm(umi, {
-//   send: { skipPreflight: true },
-// })
-//
-// console.log('createCandyMachineSig', base58.deserialize(createCandyMachineSig.signature)[0])
-
-// STEP 5: Add assets to the Candy Machine.
-
-// async function uploadAsset(num: number): Promise<{ name: string; uri: string }> {
-//   if (num < 0 || num > 10) {
-//     throw new Error('Asset number must be between 0 and 10')
-//   }
-//
-//   const assetPath = join(process.cwd(), `collection/assets/${num}.png`)
-//   const assetFile = createGenericFile(await readFile(assetPath), `${num}.png`, {
-//     tags: [{ name: 'content-type', value: 'image/png' }],
-//     contentType: 'image/png',
-//     extension: 'png',
-//   })
-//
-//   const [uploadedUri] = await umi.uploader.upload([assetFile])
-//   return { name: `Number ${num}`, uri: uploadedUri }
-// }
-//
-// async function uploadAllAssets(): Promise<{ name: string; uri: string }[]> {
-//   const uploadPromises = Array.from({ length: 11 }, (_, i) => uploadAsset(i))
-//   return await Promise.all(uploadPromises)
-// }
-//
-// const configLines = await uploadAllAssets()
-//   .then((configLines) => console.log(configLines))
-//   .catch(console.error)
-
-// console.log('configLines', configLines)
-
-const candyMachine = publicKey('EuuM6yVY5ezaDAF5aCJVTMEc2mb1entcHWDux73ZfNzM')
-
-const configLines = [
-  {
-    name: 'Number 0',
-    uri: 'https://gateway.irys.xyz/9uBUaRukMAZZf4W5zpVr3N76fBzuVGEDupmWyUa32rDr',
+const candyMachineKeypair = generateSigner(umi)
+const candyMachine = candyMachineKeypair.publicKey
+const createCandyMachineTx = await create(umi, {
+  candyMachine: candyMachineKeypair,
+  collection,
+  collectionUpdateAuthority: umi.identity,
+  itemsAvailable: 10,
+  configLineSettings: none(),
+  hiddenSettings: none(),
+  guards: {
+    // bot tax
+    botTax: some({
+      lamports: sol(0.1),
+      lastInstruction: true,
+    }),
+    // sol payment
+    solPayment: some({
+      lamports: sol(0.1),
+      destination: umi.identity.publicKey,
+    }),
   },
-  {
-    name: 'Number 1',
-    uri: 'https://gateway.irys.xyz/Fvf9wbvZy3ambH4DBrqVtMiyXJ9hh899Q9v4qptL59Pp',
-  },
-  {
-    name: 'Number 2',
-    uri: 'https://gateway.irys.xyz/D29Niprmf3HYRygX48aQWVdeXTHa7aPDr9tmJQwZznV6',
-  },
-  {
-    name: 'Number 3',
-    uri: 'https://gateway.irys.xyz/22ahrG6TjVKf4W1ZR49tNuP7D9or3kW2gX75XJGPjvez',
-  },
-  {
-    name: 'Number 4',
-    uri: 'https://gateway.irys.xyz/E58koHBgrjVrcJhkyRfMHfw48upe7jDBuBeK798fW2eP',
-  },
-  {
-    name: 'Number 5',
-    uri: 'https://gateway.irys.xyz/EjAc74fyqmjk8CdnAdNF129rc6q2kmgXaqEYNy5D7KqZ',
-  },
-  {
-    name: 'Number 6',
-    uri: 'https://gateway.irys.xyz/Bdzaiv82TghCBRHVnsA1ZKxxbY3G49CkmQVwBWetuyw8',
-  },
-  {
-    name: 'Number 7',
-    uri: 'https://gateway.irys.xyz/3gBerS5NPVmu5GC2EMxmqYeRkLcMtKduv9RxG99F5an2',
-  },
-  {
-    name: 'Number 8',
-    uri: 'https://gateway.irys.xyz/3nqAocS228WZ2qZ3sn6ZaxMDUnU81ruLixfxQ6VJwaXD',
-  },
-  {
-    name: 'Number 9',
-    uri: 'https://gateway.irys.xyz/CppqerRtQdS6rSuuFoNU8JwR7iNUgqhqRHhpTc6Xqfd1',
-  },
-  // {
-  //   name: 'Number 10',
-  //   uri: 'https://gateway.irys.xyz/Dz8v43fFRN45NWp8j6n2TEaHQc3PE7fwNm8oPLGxK1Dp',
-  // },
-]
+})
 
-// Step 6: Add configLinks to the Candy Machine.
+const createCandyMachineSig = await createCandyMachineTx.sendAndConfirm(umi, {
+  send: { skipPreflight: true },
+})
 
-// const addConfigLinkIx = addConfigLines(umi, {
-//   candyMachine,
-//   index: 0,
-//   configLines,
-// })
+console.log('createCandyMachineSig', signatureToStr(createCandyMachineSig.signature))
+console.log(`Candy Machine: ${candyMachine}`)
 //
-// const addConfigLineSig = await addConfigLinkIx.sendAndConfirm(umi, {
-//   send: { skipPreflight: true },
-// })
+//Step 6: Add configLinks to the Candy Machine.
 //
-// console.log('addConfigLineSig', base58.deserialize(addConfigLineSig.signature)[0])
+// We need to loop over the assetConfigLines and add them to the Candy Machine, we do 10 at a time
+// to avoid hitting the transaction size limit.
+const addConfigLinkIxs = []
+for (let i = 0; i < assetConfigLines.length; i += 10) {
+  const ix = addConfigLines(umi, {
+    candyMachine: candyMachineKeypair.publicKey,
+    index: i,
+    configLines: assetConfigLines.slice(i, i + 10),
+  })
+  addConfigLinkIxs.push(ix)
+}
+
+console.log(
+  pico.whiteBright(`[ STEP 5 ] Adding config links to the Candy Machine. ${addConfigLinkIxs.length} transactions`),
+)
+let i = 0
+for (const ix of addConfigLinkIxs) {
+  const addConfigLineSig = await ix.sendAndConfirm(umi, {
+    send: { skipPreflight: true },
+  })
+  console.log(
+    pico.gray(
+      `[ STEP 5 ] addConfigLineSig ${i++}/${addConfigLinkIxs.length} ${signatureToStr(addConfigLineSig.signature)}`,
+    ),
+  )
+}
+
+console.log(pico.greenBright(`[ STEP 6 ] Collection: ${collection}`))
+console.log(pico.greenBright(`[ STEP 6 ] Candy Machine: ${candyMachine}`))
+console.log(pico.whiteBright(`[ STEP 6 ] Done`))
+
+async function uploadCollectionImage(umi: Umi, { collectionImage }: { collectionImage: string }) {
+  console.log(pico.gray(`[ uploadCollectionAssets ] Uploading the collection image`))
+  const content = await readFile(collectionImage)
+  const collectionImageUri = await umi.uploader
+    .upload([
+      createGenericFile(content, 'collection.png', {
+        tags: [{ name: 'content-type', value: 'image/png' }],
+        contentType: 'image/png',
+        extension: 'png',
+      }),
+    ])
+    // We are only interested in the first URI
+    .then((uri) => uri[0])
+
+  console.log(pico.gray(`[ uploadCollectionAssets ] Collection image URI: ${collectionImageUri}`))
+
+  console.log(pico.gray(`[ uploadCollectionAssets ] Uploading the collection metadata`))
+  const collectionMetadataData = {
+    name: 'Numbers BLS051',
+    symbol: 'NUMBERS',
+    description: 'Awesome numbers 0 - 10',
+    image: collectionImageUri,
+    properties: {
+      files: [{ uri: collectionImageUri, type: 'image/png' }],
+    },
+  }
+  const collectionMetadataUri = await umi.uploader.uploadJson(collectionMetadataData)
+  console.log(pico.gray(`[ uploadCollectionAssets ] Collection metadata URI: ${collectionMetadataUri}`))
+
+  return {
+    collectionImageUri,
+    collectionMetadataUri,
+  }
+}
+
+async function uploadAssetImage(umi: Umi, { assetImage, i }: { assetImage: string; i: number }) {
+  console.log(pico.gray(`[ uploadAssetAssets ] Uploading the asset image ${i} ${assetImage}`))
+  const content = await readFile(assetImage)
+  const assetImageUri = await umi.uploader
+    .upload([
+      createGenericFile(content, 'asset.png', {
+        tags: [{ name: 'content-type', value: 'image/png' }],
+        contentType: 'image/png',
+        extension: 'png',
+      }),
+    ])
+    // We are only interested in the first URI
+    .then((uri) => uri[0])
+
+  console.log(pico.gray(`[ uploadAssetAssets ] Asset image URI: ${assetImageUri}`))
+
+  const assetMetadataData = {
+    name: `Number ${i}`,
+    symbol: `NUMBER${i}`,
+    description: `Awesome number ${i}`,
+    image: assetImageUri,
+    properties: {
+      files: [{ uri: assetImageUri, type: 'image/png' }],
+    },
+  }
+  const assetMetadataUri = await umi.uploader.uploadJson(assetMetadataData)
+  console.log(pico.gray(`[ uploadAssetAssets ] Asset metadata URI: ${assetMetadataUri}`))
+
+  return {
+    assetImageUri,
+    assetName: assetMetadataData.name,
+    assetMetadataUri,
+  }
+}
+
+function signatureToStr(signatureBytes: TransactionSignature) {
+  const [str] = base58.deserialize(signatureBytes)
+  return str
+}
