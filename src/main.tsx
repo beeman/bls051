@@ -11,3 +11,11 @@ createRoot(document.getElementById('root')!).render(
     </BrowserRouter>
   </StrictMode>,
 )
+
+function patchBigintToJSON() {
+  ;(BigInt.prototype as unknown as { toJSON: () => string }).toJSON = function () {
+    return this.toString()
+  }
+}
+
+patchBigintToJSON()
